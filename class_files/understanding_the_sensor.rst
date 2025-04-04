@@ -1,107 +1,201 @@
-Understanding the line sensor
-=============================
+Sensing Lines
+=============
 
-In the last module, you used the distance sensor to measure distances and make 
-the XRP follow along a wall. The XRP has another sensor that allows it to 
-navigate: the **line following sensor**.
+**Daily Goals**
 
-The line following sensor consists of two "reflectance" sensors. Simply put, the
-reflectance sensor shines a light at the ground and measures how much of the 
-light is reflected back. The darker an object is, the less light it reflects.
-The sensor uses infrared light, just like a TV remote, so the light is not 
-visible to the human eye.
+* Understand how the XRP robot's reflectance sensors work to detect lines.
+* Learn how to read values from the left and right reflectance sensors using **XRPLib**.
+* Characterize the reflectance sensors by observing the values they return over different surfaces (white, black line, partially over the line).
+* Determine an appropriate threshold value to differentiate between the line and the background.
+* Learn about conditional statements (`if`/`else`) in Python and how they can be used to make decisions based on sensor input.
+* Write a program that makes the XRP robot drive forward and stop when both reflectance sensors detect a line.
 
-This sensor is perfect for sensing dark lines on a light background! If the 
-sensor is on top of a dark line, less light will be reflected back, and if it is
-not on a line, more light will be reflected back. You can use this information 
-in your code to let the robot decide what to do in these situations.
+Introduction
+------------
 
-The XRP has *two* reflectance sensors, a left sensor and a right sensor. If you
-look at the bottom of your XRP on the sensor board, you will see the two
-sensors. **S1** is the left sensor and **S2** is the right sensor. Later in the
-module you will learn a way to use both sensors to follow lines very smoothly, 
-For this lesson, we will only use the *right* sensor.
+Imagine your XRP robot is playing a game where it needs to follow a path marked by a dark line on a light floor. How does it know where the line is? The answer lies in its **reflectance** sensors!
 
-.. figure:: media/line_sensors.png
-    :align: center
+The XRP has two of these special sensors located underneath the front bumper. Think of them like the robot's eyes for seeing lines. These sensors help the robot understand the surface it's driving over without actually touching it.
 
-    The two reflectance sensors on the XRP.
+.. figure:: images/line_sensors.png
+    :width: 450
 
-**XRPLib** provides functions to read the values of the reflectance sensors:
+    The reflectance sensor as it is mounted on the underside of the robot front bumper.
+
+How do these sensors work? Each one shines a tiny beam of infrared light downwards onto the ground. Infrared light is similar to the light used in your TV remote – you can't see it with your eyes! The sensor then measures how much of this light bounces back up.
+
+Think of it like shining a flashlight on different surfaces. If you shine it on a white piece of paper, a lot of light will bounce back into your eyes, making it look bright. But if you shine it on a dark piece of cloth, much less light will bounce back, and it will look dark.
+
+The XRP's reflectance sensors work in the same way. They are perfect for detecting dark lines on a light background because:
+
+* **On a light surface (like white):** Lots of infrared light will be reflected back to the sensor.
+* **On a dark line (like black):** Very little infrared light will be reflected back to the sensor.
+
+The left and right sensor objects in the XRP's programming return a value between 0.0 and 1.0. These numbers tell you how much light the sensor is detecting:
+
+* **A value close to 1.0:** Means the sensor is seeing a lot of reflected light, so it's likely over a light surface.
+* **A value close to 0.0:** Means the sensor is seeing very little reflected light, so it's likely over a dark surface (like a line).
+
+**XRPLib** provides easy-to-use functions to get these values from the reflectance sensors:
 
 .. code-block:: python
 
     from XRPLib.defaults import *
 
-    # Reads the left sensor and stores the value in the variable "left"
+    # Reads the value from the left sensor and stores it in a container called "left"
     left = reflectance.get_left()
 
-    # Reads the right sensor and stores the value in the variable "right"
+    # Reads the value from the right sensor and stores it in a container called "right"
     right = reflectance.get_right()
 
-Before doing anything with a new sensor, you need to have a good understanding 
-of the values it will give you in different conditions. For the reflectance 
-sensor, it would be good to know what the sensor reports when it is completely 
-off of the line (seeing a white surface), completely on the line (seeing a 
-black surface), and some "middle of the road" values, when the sensor is half 
-on the line and half off the line.
+In this code, `reflectance.get_left()` is a command that asks the left sensor for its current reading (a number between 0.0 and 1.0). This number is then stored in a variable named `left`. Similarly, `reflectance.get_right()` gets the reading from the right sensor and stores it in the `right` variable.
 
-.. tip:: 
+Characterizing the sensors
+--------------------------
 
-    Remember that for this exercise you should only be using the *right* line 
-    sensor. Make sure that you center the correct part of the sensor board over
-    the line when taking your measurements.
+Before you start using the reflectance sensors to make your robot follow lines, it's a good idea to get to know them better. This is like trying out a new pen to see how it writes on different types of paper. We want to understand what values the sensors report in different situations. Let's try to find out what values the sensors return when they are:
 
-.. admonition:: Try it out
+* **Completely off the line (seeing a white surface):** What's the typical range of values?
+* **Completely on the line (seeing a black surface):** What's the typical range of values now?
+* **Partially on the line (straddling the line):** What kind of values do you see in this case?
 
-    Write code to read the value of the right reflectance sensor and use the
-    webserver to log and graph the values in an infinite loop. Move the XRP
-    around on a white surface with a line, and take note of the values the
-    sensor reads in the different conditions above.
+.. tip::
 
-What do you notice from the values you measured? The documentation for the 
-``reflectance`` module in **XRPLib** states that the ``get_left()`` and 
-``get_right()`` functions return a number between 0 and 1. Did your values ever 
-reach exactly 0 or exactly 1? Can you tell which range of numbers corresponds to
-seeing white and which range of numbers corresponds to seeing black?
-
-.. figure:: media/reflectance_sensor_graph.png
-    :align: center
-
-    Example graph of reflectance sensor data.
-
-Above is an example graph of some data from the reflectance sensor. At around 
-50 units on the X axis, the reflectance sensor was moved over a line (this data 
-was recorded while the robot was driving across a line) and at around 60 units,
-the reflectance sensor was moved back off of the line. Does your graph look 
-similar to the one above?
-
-.. note:: 
-
-    Your graph will not look exactly the same as ours. No two reflectance 
-    sensors are exactly the same, so it is important for you to take your own 
-    measurements with your own robot.
-
-It's good to experiment with the reflectance sensor to see what it does, but you
-took this data for a reason. The line following sensor reports back a number, 
-but what we'd really like it to tell us is whether it sees a line or not. To do 
-this, you'll need to select a "threshold" value, where if the sensor reports a 
-value greater than the threshold, we can confidently assume the sensor is seeing
-a line, and if the sensor reports a value below the threshold, we can assume it 
-is not seeing a line.
+    To make your testing easier, focus on one sensor at a time. You can do this by only looking at the values from either the left sensor *or* the right sensor. When you take a measurement, make sure that the correct sensor (left or right) is positioned directly over the line or the white surface.
 
 .. admonition:: Try it out
 
-    Look at your graph and select a threshold value that makes sense to you.
-    A number around halfway between the minimum and the maximum value you 
-    measured is a good starting point.
+    To test the sensor on the surface you'll be using for your robot's path, write a small program. This program should:
 
-    Write a function called ``is_over_line()`` which reads the value of the
-    right reflectance sensor and returns ``True`` if the sensor sees a line
-    (value above the threshold) or ``False`` if it does not. Don't delete this
-    function when you're done, because you'll use it for the rest of the module!
+    1.  Choose either the left or the right reflectance sensor to test.
+    2.  Read the value of that sensor.
+    3.  Print the value to the screen.
+    4.  Repeat steps 2 and 3 continuously in a loop as you move the robot around on the white surface and over a line.
+    5.  Record the values you observe in each situation (off the line, on the line, straddling the line).
 
-    Use the webserver to log the result of calling your function in an infinite 
-    loop. Move your robot around a surface with lines on it to make sure it 
-    always returns the correct value based on what the sensor is seeing. If you 
-    are getting incorrect values, adjust your threshold value.
+What did you learn about the sensor values? The documentation for the ``reflectance`` module in **XRPLib** tells us that the ``get_left()`` and ``get_right()`` functions will always give you a number between 0 and 1.
+
+* Did your sensor values ever reach exactly 0 or exactly 1? Why might that be? (Think about whether the line is perfectly black or the surface is perfectly white.)
+* Based on your observations, what range of values seems to indicate that the sensor is seeing the white surface?
+* What range of values seems to indicate that the sensor is seeing the black line?
+
+Determining a Threshold
+------------------------
+
+Now that you have an idea of the values the sensor returns, let's think about how we can use this information in our robot's program. We need to decide on a **threshold** value.
+
+A threshold is like a dividing line. If the sensor reading is on one side of the threshold, we can say the sensor sees a line. If it's on the other side, we can say it doesn't.
+
+Given the ranges of values you found in the previous step, what number do you think would be a good threshold? This number should be somewhere in between the values you get when the sensor is clearly on the white surface and when it's clearly on the black line. For example, if you found that white gives you values around 0.8 and black gives you values around 0.2, a threshold of 0.5 might be a good starting point.
+
+Introduction to Conditionals
+----------------------------
+
+Now that we can get values from the sensors and we have an idea of a good threshold, how do we make the robot do something based on what the sensors are telling us? This is where **conditionals** come in!
+
+In Python, conditionals allow your program to make decisions. They let you tell the robot to do one thing if a certain condition is true, and maybe do something else if the condition is false. The most common way to do this is with the `if` statement.
+
+Think of it like this: "IF the light is red, THEN stop. ELSE (if the light is green), THEN go."
+
+Here's how an `if` statement looks in Python:
+
+.. code-block:: python
+
+    threshold = 0.5  # This is our example threshold value
+    sensor_value = reflectance.get_left() # Get the current reading from the left sensor
+
+    if sensor_value > threshold:
+        print("Sensor is over the line")
+    else:
+        print("Sensor is not over the line")
+
+Let's break down this code:
+
+* `threshold = 0.5`: This line just sets up our example threshold value. You might need to change this based on your sensor testing!
+* `sensor_value = reflectance.get_left()`: This line reads the current value from the left reflectance sensor and stores it in the `sensor_value` variable.
+* `if sensor_value > threshold:`: This is the start of our conditional statement. It checks if the value in `sensor_value` is greater than the value in `threshold`. If this is true (the sensor reading is high, meaning it's likely over a light surface), then the code indented below the `if` will be executed.
+* `print("Sensor is over the line")`: This line will only be executed if the condition in the `if` statement is true.
+* `else:`: This keyword introduces the alternative action to take if the condition in the `if` statement is false.
+* `print("Sensor is not over the line")`: This line will only be executed if the condition in the `if` statement is false (the sensor reading is low, meaning it's likely over a dark line).
+
+Stopping at a Line
+------------------
+
+Now, let's use what we've learned about sensor values and conditional statements to make the XRP robot stop when it detects a line with both of its reflectance sensors.
+
+.. admonition:: Try it out
+
+    Write a program that will make the XRP robot drive forward. The robot should continue driving until *both* its left and right reflectance sensors detect a dark line. Once both sensors are over the line, the robot should stop. Use a conditional statement (an `if` statement) inside a loop to continuously check the sensor values.
+
+    Here's an example of how you might write this code:
+
+    .. code-block:: python
+
+        from XRPLib.defaults import *
+
+        threshold = 0.5  # Remember to use the threshold value you determined!
+
+        # Set the speed of both wheels to make the robot move forward slowly
+        drivetrain.set_speed(5, 5)
+
+        # We'll use these to keep track of whether each sensor is over the line
+        left_over_line = False
+        right_over_line = False
+
+        # This loop will keep running as long as *both* sensors are NOT over the line
+        while not (left_over_line and right_over_line):
+
+            # Check the left sensor
+            if reflectance.get_left() > threshold:
+                # If the left sensor sees a dark line (value is below the threshold), set this to True
+                left_over_line = True
+            else:
+                # If it doesn't see a line, make sure this is False
+                left_over_line = False
+
+            # Check the right sensor in the same way
+            if reflectance.get_right() > threshold:
+                right_over_line = True
+            else:
+                right_over_line = False
+
+        # Once the loop stops (meaning both sensors are over the line), stop the robot
+        drivetrain.stop()
+
+.. note::
+
+    You can actually write the condition in the `while` loop in a more concise way! Instead of using the `left_over_line` and `right_over_line` variables, you can directly check the sensor values:
+
+    .. code-block:: python
+
+        from XRPLib.defaults import *
+
+        threshold = 0.5  # Use your determined threshold!
+
+        # Set the speed of both wheels
+        drivetrain.set_speed(5, 5)
+
+        # Drive forward until both sensors detect the line
+        while not (reflectance.get_left() > threshold and reflectance.get_right() > threshold):
+            pass # Keep doing nothing (driving forward) until the condition is met
+
+        # Stop the drivetrain
+        drivetrain.stop()
+
+    Try running your code! Place the XRP robot on a light surface with a dark line. Does it drive forward and stop when both sensors are over the line? If it doesn't stop correctly, you might need to adjust your ``threshold`` value (make it higher or lower) or double-check the logic in your `if` and `while` statements.
+
+.. figure:: images/stop_at_line.webp
+    :width: 450
+
+    The XRP driving forward until both sensors detect the line.
+
+**Recap**
+
+Today, you have:
+
+* Learned that the XRP robot uses reflectance sensors to "see" lines by measuring the reflection of infrared light.
+* Discovered how to read the values from the left and right reflectance sensors using `reflectance.get_left()` and `reflectance.get_right()` in **XRPLib**.
+* Characterized the behavior of the reflectance sensors by observing the range of values they produce over white surfaces, black lines, and when partially covering a line.
+* Understood the importance of choosing an appropriate threshold value to distinguish between the line and the background based on sensor readings.
+* Been introduced to conditional statements (`if`/`else`) in Python and how they allow your robot to make decisions based on sensor data.
+* Written a Python program that makes the XRP robot drive forward and automatically stop when both of its reflectance sensors detect a dark line.
